@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net: Default-deny all undefined paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Primitives and Security Gates
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation helper for User entity
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 150
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('branch' in data) || (data.branch is string && data.branch.size() <= 100))
+        && (!('semester' in data) || (data.semester is string && data.semester.size() <= 20))
+        && (!('targetDomain' in data) || (data.targetDomain is string && data.targetDomain.size() <= 100));
+    }
+
+    // Validation helper for Project entity
+    function isValidProject(data, ownerId) {
+      return data.keys().hasAll(['id', 'userId', 'title'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == ownerId && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && (!('shortDescription' in data) || (data.shortDescription is string && data.shortDescription.size() <= 1000))
+        && (!('problemStatement' in data) || (data.problemStatement is string && data.problemStatement.size() <= 2000))
+        && (!('proposedSolution' in data) || (data.proposedSolution is string && data.proposedSolution.size() <= 2000))
+        && (!('difficultyLevel' in data) || (data.difficultyLevel is string && data.difficultyLevel.size() <= 50))
+        && (!('estimatedDuration' in data) || (data.estimatedDuration is string && data.estimatedDuration.size() <= 50))
+        && (!('techStack' in data) || (data.techStack is list && data.techStack.size() <= 30));
+    }
+
+    // Validation helper for Roadmap entity
+    function isValidRoadmap(data, ownerId) {
+      return data.keys().hasAll(['projectId', 'userId'])
+        && data.projectId is string && data.projectId.size() <= 128
+        && data.userId is string && data.userId == ownerId && data.userId == request.auth.uid
+        && (!('completedTasksCount' in data) || data.completedTasksCount is number)
+        && (!('totalTasksCount' in data) || data.totalTasksCount is number);
+    }
+
+    // User Profile Documents: Strict PII Isolation
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false; // Disallow querying across all user profiles
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming())
+                    && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Student Saved Projects Subcollection
+      match /savedProjects/{projectId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(projectId)
+                      && isValidProject(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(projectId)
+                      && isValidProject(incoming(), userId)
+                      && incoming().userId == existing().userId
+                      && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
+      }
+
+      // Project Development Roadmaps Subcollection
+      match /roadmaps/{roadmapId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(roadmapId)
+                      && isValidRoadmap(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(roadmapId)
+                      && isValidRoadmap(incoming(), userId)
+                      && incoming().userId == existing().userId
+                      && incoming().projectId == existing().projectId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(roadmapId);
+      }
+    }
+  }
+}

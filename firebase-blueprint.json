@@ -1,0 +1,153 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Student user profile and academic preferences",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth User ID",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full student name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Student email address",
+          "maxLength": 150
+        },
+        "branch": {
+          "type": "string",
+          "description": "Academic branch/discipline",
+          "maxLength": 100
+        },
+        "semester": {
+          "type": "string",
+          "description": "Current semester",
+          "maxLength": 20
+        },
+        "targetDomain": {
+          "type": "string",
+          "description": "Target project specialization domain",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when account was initialized"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Saved capstone project idea with architectural specifications",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Project ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner student UID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Project title",
+          "maxLength": 200
+        },
+        "shortDescription": {
+          "type": "string",
+          "description": "Brief summary",
+          "maxLength": 1000
+        },
+        "problemStatement": {
+          "type": "string",
+          "description": "Problem being resolved",
+          "maxLength": 2000
+        },
+        "proposedSolution": {
+          "type": "string",
+          "description": "Proposed engineering solution",
+          "maxLength": 2000
+        },
+        "difficultyLevel": {
+          "type": "string",
+          "description": "Complexity tier (Beginner, Intermediate, Advanced)",
+          "maxLength": 50
+        },
+        "estimatedDuration": {
+          "type": "string",
+          "description": "Estimated timeframe",
+          "maxLength": 50
+        },
+        "techStack": {
+          "type": "array",
+          "description": "List of core technologies",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "Roadmap": {
+      "title": "Roadmap",
+      "description": "Milestone progress tracking for a capstone project",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "description": "Associated project ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner student UID",
+          "maxLength": 128
+        },
+        "completedTasksCount": {
+          "type": "number",
+          "description": "Number of completed roadmap milestones"
+        },
+        "totalTasksCount": {
+          "type": "number",
+          "description": "Total roadmap tasks"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["projectId", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profile and academic preferences."
+    },
+    "/users/{userId}/savedProjects/{projectId}": {
+      "schema": "Project",
+      "description": "Stores bookmarked projects saved by the student."
+    },
+    "/users/{userId}/roadmaps/{roadmapId}": {
+      "schema": "Roadmap",
+      "description": "Stores progress records for student project development roadmaps."
+    }
+  }
+}
