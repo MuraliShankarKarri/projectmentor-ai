@@ -1,8 +1,10 @@
 node_modules/
-build/
+.env
+.env.local
 dist/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
+build/
+.firebase/
+venv/
+.venv/
+__pycache__/
+*.pyc
